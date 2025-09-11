@@ -1,0 +1,4 @@
+# Core runtime deps for the reproduction script
+numpy>=1.26
+pandas>=2.0
+PyYAML>=6.0

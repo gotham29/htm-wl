@@ -1,0 +1,15 @@
+name: htm_wl_repro
+channels: [conda-forge, defaults]
+dependencies:
+  - python=3.11
+  - pip
+  - numpy
+  - pyyaml
+  - pandas
+  - requests
+  - uvicorn
+  - fastapi
+  - cmake            # for htm.core build
+  - pip:
+      # we'll build htm.core from source (see README); this is here for upgrades later
+      - .
