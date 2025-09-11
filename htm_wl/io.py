@@ -45,7 +45,7 @@ def extract_defaults(cfg: Dict[str, Any]) -> Dict[str, Any]:
         "spike_params": {
             "recent_count": recent,
             "prior_count": prior,
-            "growth_threshold_pct": thresh,
+            "threshold_pct": thresh,
         },
         "seed": seed,
         # Required features for the paper
