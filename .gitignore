@@ -1,0 +1,12 @@
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+.env
+.vscode/
+build/
+dist/
+*.egg-info/
+data/
+results/
+htm.core/
