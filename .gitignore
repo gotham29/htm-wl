@@ -1,12 +1,41 @@
-.DS_Store
+# Python
 __pycache__/
 *.pyc
 .venv/
 .env
-.vscode/
+
+# Build metadata
+*.egg-info/
 build/
 dist/
-*.egg-info/
+
+# Local config & data
+config.yaml
 data/
 results/
+
+# Local clones (install htm.core in your env, do not vendor)
 htm.core/
+
+# Other
+.vscode/
+.DS_Store
+
+# JetBrains
+.idea/
+
+# Pyenv/Poetry
+.python-version
+poetry.lock
+
+# Caches
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Logs/DB
+*.log, *.sqlite*
