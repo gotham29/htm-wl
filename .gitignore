@@ -39,3 +39,4 @@ poetry.lock
 
 # Logs/DB
 *.log, *.sqlite*
+

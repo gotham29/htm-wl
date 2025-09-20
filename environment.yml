@@ -1,4 +1,4 @@
-name: htm_wl_repro
+name: htm_wl
 channels: [conda-forge, defaults]
 dependencies:
   - python=3.11
