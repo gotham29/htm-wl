@@ -1,0 +1,70 @@
+# ==== DATASET ====
+dataset:
+  # EITHER set a fixed sample rate…
+  rate_hz: 6.67
+  # …OR provide a timestamp column (ISO strings). If present, it will be copied through.
+  timestamp_column: null
+
+  # Where to find files (glob patterns). Each file is one “run”.
+  train:
+    - "data/*/train.csv"
+  test:
+    - "data/*/*.csv"
+    - "!data/*/train.csv"     # exclude trains; “!” means exclude pattern
+
+  # Map your CSV columns to feature names the model will use
+  features:
+    - name: ROLL_STICK
+      column: ROLL_STICK
+      min: -1.0
+      max: 1.0
+    - name: PITCH_STIC         # accepts PITCH_STICK in older datasets
+      column: PITCH_STIC
+      min: -1.0
+      max: 1.0
+
+# ==== MODEL (HTM core) ====
+model:
+  encoder:
+    n_per_feature: 400
+    w_per_feature: 21
+  sp:
+    potentialPct: 0.8
+    synPermActiveInc: 0.003
+    synPermInactiveDec: 0.0005
+    synPermConnected: 0.2
+    boostStrength: 0.0
+    columnCount: 2048
+    globalInhibition: true
+  tm:
+    cellsPerColumn: 32
+    activationThreshold: 20
+    minThreshold: 13
+    newSynapseCount: 31
+    permanenceInc: 0.10
+    permanenceDec: 0.0
+    initialPerm: 0.21
+    permanenceConnected: 0.5
+    predictedSegmentDecrement: 0.001
+  seed: 0
+  anomaly_ema_alpha: 0.2
+
+# ==== DETECTOR ====
+detection:
+  windows:
+    units: steps        # steps | seconds
+    recent: 21
+    prior: 42
+  threshold_pct: 200.0
+
+# ==== EVALUATION (optional) ====
+# A reviewer can give you either a YAML mapping or a CSV with columns:
+#   file, toggle_step  (or)  file, toggle_ts
+evaluation:
+  ground_truth:
+    path: null          # e.g., "gt.csv" or "gt.yaml"
+    format: csv         # csv | yaml
+    csv:
+      file_col: file
+      toggle_step_col: toggle_step
+      toggle_ts_col: toggle_ts
