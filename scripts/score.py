@@ -100,7 +100,13 @@ def main():
     out_root.mkdir(parents=True, exist_ok=True)
 
     for p in test_files:
-        det = SpikeDetector(recent_count, prior_count, threshold_pct)
+        det = SpikeDetector(
+            recent_count=recent_count,
+            prior_count=prior_count,
+            threshold_pct=threshold_pct,
+            min_separation=int(detcfg.get("min_separation", 0)),
+            edge_only=bool(detcfg.get("edge_only", True)),
+        )
         rows = []
         step = 0
         for ts, feats_row in _iter_rows_mapped(p, feat_map, ts_col):

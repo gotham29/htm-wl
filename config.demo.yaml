@@ -39,14 +39,16 @@ model:
     permanenceConnected: 0.5
     predictedSegmentDecrement: 0.001
   seed: 0
-  anomaly_ema_alpha: 0.2
+  anomaly_ema_alpha: 0.08
 
 detection:
   windows:
     units: steps
-    recent: 21
-    prior: 42
-  threshold_pct: 200.0
+    recent: 25
+    prior: 75
+  threshold_pct: 180.0
+  min_separation: 60
+  edge_only: true
 
 evaluation:
   ground_truth:
