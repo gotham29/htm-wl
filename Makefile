@@ -82,3 +82,18 @@ clean:
 	@echo ">> removing generated artifacts"
 	@rm -rf $(OUTDIR) **/__pycache__ .pytest_cache .mypy_cache htm_wl.egg-info
 	@echo ">> clean complete"
+
+# --- Demo flow: generate -> score -> eval (no private data) ---
+demo:
+	@echo ">> generating synthetic demo data..."
+	@$(PY) -m scripts.make_demo --out data_demo --subjects 2 --rate-hz 6.67 --train-len 1200 --test-len 1000 --toggle-step 500
+	@echo ">> scoring demo data..."
+	@$(PY) -m scripts.score --config config.demo.yaml --outdir results_demo --verbose
+	@echo ">> evaluating demo results..."
+	@$(PY) -m scripts.eval_from_scores --scores-dir results_demo/scores \
+		--gt data_demo/subjects_testfiles_wltogglepoints.yaml --gt-format subjects_yaml \
+		--rate-hz 6.67 --out results_demo/metrics.csv
+	@echo ">> demo complete → results_demo/metrics.csv"
+
+demo-clean:
+	@rm -rf data_demo results_demo

@@ -6,9 +6,8 @@ Reproducible pipeline for **HTM-based mental workload (MWL)**:
 - Spike detector: **recent vs prior window % growth**
 - Metrics: **Detection lag** (first spike ≥ toggle step) and **Precision** (TP / (TP+FP))
 
-This repo supports two flows:
-1) **Paper Reproduction** – run on the provided dataset using `run_pipeline.yaml`.
-2) **Bring-Your-Own-Data (BYOD)** – point to your own CSVs, score runs, and (optionally) evaluate against your ground truth.
+This repo supports:
+**Bring-Your-Own-Data (BYOD)** – point to your own CSVs, score runs, and (optionally) evaluate against your ground truth.
 
 ---
 
@@ -54,33 +53,17 @@ cd ..
 
 ---
 
-## 2) Paper Reproduction
+## 2) BYOD (Bring-Your-Own-Data)
 
-**Put files in place**
-- `run_pipeline.yaml` at repo root (already here)
-- Dataset under `./data/` (subject folders with `train.csv` and test CSVs)
+## Quick Demo (no private data)
 
-**Run**
-~~~
-python -m scripts.evaluate \
-  --config run_pipeline.yaml \
-  --data-root data \
-  --outdir results \
-  --verbose \
-  --limit-train 500 \
-  --max-files 5
-~~~
+```bash
+# create synthetic data -> score -> evaluate
+make demo
+# results: results_demo/metrics.csv and per-run scores in results_demo/scores/
+```
 
-Remove the speed-limit flags for a full run.
-
-**Output:** `results/summary.csv` with columns  
-`subject,file,toggle_step,spikes,detection_lag_steps,detection_lag_seconds,precision`.
-
----
-
-## 3) BYOD (Bring-Your-Own-Data)
-
-### 3.1 Create a config
+### 2.1 Create a config
 ~~~
 cp config.example.yaml config.yaml
 # edit:
@@ -94,7 +77,7 @@ Notes:
 - Globs can exclude with `!`, e.g. `- "!data/*/train.csv"`.
 - Each test CSV is treated as one run.
 
-### 3.2 Score your files (produce MWL & spikes)
+### 2.2 Score your files (produce MWL & spikes)
 ~~~
 python -m scripts.score --config config.yaml --outdir results --verbose
 ~~~
@@ -113,7 +96,7 @@ Outputs go to `results/scores/` with filenames like `Subject__file.csv` (prevent
 | growth_pct    | % growth (mr vs mp)                       |
 | `<timestamp>` | the timestamp column if you configured it |
 
-### 3.3 Evaluate against ground truth (optional)
+### 2.3 Evaluate against ground truth (optional)
 
 **Option A — your nested YAML (subject → files)**  
 If you have `data/subjects_testfiles_wltogglepoints.yaml`:
@@ -149,7 +132,7 @@ Put `toggle_ts` in your GT CSV and pass `--ts-col-in-scores <your_ts_col>`; the 
 
 ---
 
-## 4) How the detector works (transparent math)
+## 3) How the detector works (transparent math)
 
 Let `nr = recent` window length, `np = prior` window length (in steps or converted from seconds via `rate_hz`).
 
@@ -162,7 +145,7 @@ All internals (`mr`, `mp`, `growth_pct`) are exported in the score files to aid 
 
 ---
 
-## 5) Repo layout
+## 4) Repo layout
 
 ~~~
 htm_wl/               # package (engine wrapper, detector, metrics)
@@ -178,7 +161,7 @@ data/                 # your datasets (not versioned)
 
 ---
 
-## 6) Troubleshooting
+## 5) Troubleshooting
 
 **“No score files in results/scores”**  
 Debug your test globs quickly:
@@ -208,12 +191,12 @@ Handled by scorer naming as `Subject__file.csv`.
 
 ---
 
-## 7) License note
+## 6) License note
 
 This repo is for research reproduction and BYOD evaluation. The runtime depends on **htm.core** (AGPL-3.0). Do not vendor or modify `htm.core` in this repo; install it into your environment instead.
 
 ---
 
-## 8) Citation
+## 7) Citation
 
 If you use this for review or research, please cite the associated paper and this repository.

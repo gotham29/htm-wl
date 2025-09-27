@@ -1,0 +1,54 @@
+dataset:
+  rate_hz: 6.67
+  timestamp_column: null
+
+  train:
+    - "data_demo/*/train.csv"
+  test:
+    - "data_demo/*/*.csv"
+    - "!data_demo/*/train.csv"
+
+  features:
+    - name: ROLL_STICK
+      column: ROLL_STICK
+      min: -2.0
+      max: 2.0
+    - name: PITCH_STIC
+      column: PITCH_STIC
+      min: -2.0
+      max: 2.0
+
+model:
+  encoder: { n_per_feature: 400, w_per_feature: 21 }
+  sp:
+    potentialPct: 0.8
+    synPermActiveInc: 0.003
+    synPermInactiveDec: 0.0005
+    synPermConnected: 0.2
+    boostStrength: 0.0
+    columnCount: 2048
+    globalInhibition: true
+  tm:
+    cellsPerColumn: 32
+    activationThreshold: 20
+    minThreshold: 13
+    newSynapseCount: 31
+    permanenceInc: 0.10
+    permanenceDec: 0.0
+    initialPerm: 0.21
+    permanenceConnected: 0.5
+    predictedSegmentDecrement: 0.001
+  seed: 0
+  anomaly_ema_alpha: 0.2
+
+detection:
+  windows:
+    units: steps
+    recent: 21
+    prior: 42
+  threshold_pct: 200.0
+
+evaluation:
+  ground_truth:
+    path: "data_demo/subjects_testfiles_wltogglepoints.yaml"
+    format: subjects_yaml
