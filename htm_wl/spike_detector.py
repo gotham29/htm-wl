@@ -3,9 +3,10 @@ from typing import Optional, Dict, List
 
 class SpikeDetector:
     """
-    Recent/prior mean growth detector with optional:
+    Recent/prior mean growth detector with:
       - rising-edge trigger (edge_only=True): fire only on False->True crossings
       - refractory period (min_separation): suppress follow-up spikes for N steps
+      - robust denominator: use abs(prior) with a floor to handle mp≈0 baselines
     """
     def __init__(
         self,
@@ -14,6 +15,8 @@ class SpikeDetector:
         threshold_pct: float,
         min_separation: int = 0,
         edge_only: bool = True,
+        denom_floor: float = 1e-3,   # NEW: floor for prior mean magnitude
+        use_abs_mp: bool = True,     # NEW: use |mp| in denominator
     ):
         self.recent_count = int(recent_count)
         self.prior_count = int(prior_count)
@@ -26,6 +29,9 @@ class SpikeDetector:
         self._min_sep: int = int(min_separation)
         self._edge_only: bool = bool(edge_only)
 
+        self._denom_floor = float(denom_floor)
+        self._use_abs_mp = bool(use_abs_mp)
+
     def update(self, mwl_value: float) -> Optional[Dict[str, float]]:
         self._step += 1
         self._buf.append(float(mwl_value))
@@ -34,20 +40,16 @@ class SpikeDetector:
         if len(self._buf) < n:
             return None
 
-        # Split into prior and recent windows
         recent_vals = self._buf[-self.recent_count:]
         prior_vals  = self._buf[-n:-self.recent_count]
 
         mr = sum(recent_vals) / len(recent_vals)
         mp = sum(prior_vals)  / len(prior_vals)
 
-        # Avoid division by zero / tiny prior mean
-        if abs(mp) <= 1e-12:
-            growth_pct = 0.0
-            over = False
-        else:
-            growth_pct = 100.0 * (mr - mp) / mp
-            over = (growth_pct > self.threshold_pct)
+        # Robust percent growth
+        den = max(abs(mp), 1e-12)
+        growth_pct = 100.0 * (mr - mp) / den
+        over = (mr > mp) and (growth_pct > self.threshold_pct)
 
         spike = False
         if over:
@@ -64,5 +66,5 @@ class SpikeDetector:
             "mp": float(mp),
             "growth_pct": float(growth_pct),
             "spike": bool(spike),
-            "step": self._step,  # handy for debugging
+            "step": self._step,
         }

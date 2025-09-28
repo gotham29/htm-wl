@@ -49,6 +49,7 @@ detection:
   threshold_pct: 180.0
   min_separation: 60
   edge_only: true
+  mp_floor: 0.02
 
 evaluation:
   ground_truth:

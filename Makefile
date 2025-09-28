@@ -45,7 +45,8 @@ eval:
 
 demo:
 	@echo ">> generating synthetic demo data..."
-	@$(PY) -m scripts.make_demo --out data_demo --subjects 2 --rate-hz 6.67 --train-len 1200 --test-len 1000 --toggle-step 500
+	@$(PY) -m scripts.make_demo --out data_demo --subjects 2 --rate-hz 6.67 \
+		--len-A 1200 --len-B 300 --len-C 900 --len-D 300
 	@echo ">> scoring demo data..."
 	@$(PY) -m scripts.score --config config.demo.yaml --outdir results_demo --verbose
 	@echo ">> evaluating demo results..."

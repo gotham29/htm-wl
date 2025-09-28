@@ -106,6 +106,8 @@ def main():
             threshold_pct=threshold_pct,
             min_separation=int(detcfg.get("min_separation", 0)),
             edge_only=bool(detcfg.get("edge_only", True)),
+            denom_floor=float(detcfg.get("denom_floor", 1e-3)),
+            use_abs_mp=bool(detcfg.get("use_abs_mp", True)),
         )
         rows = []
         step = 0

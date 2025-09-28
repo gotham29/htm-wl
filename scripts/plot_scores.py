@@ -19,14 +19,15 @@ import yaml
 import matplotlib.pyplot as plt
 
 
-def _load_gt_subjects_yaml(path: Path) -> dict[str, dict]:
+def _load_gt_subjects_yaml(path: Path) -> dict[str, list[int]]:
     with path.open("r") as f:
         y = yaml.safe_load(f)
-    # { "Subject": { "file.csv": {"times_wltoggle":[step], ...}, ...}, ... }
     out = {}
     for subj, files in y.items():
         for fname, meta in files.items():
-            out[f"{subj}__{Path(fname).stem}.csv"] = int(meta["times_wltoggle"][0])
+            vals = meta.get("times_wltoggle", [])
+            vals = vals if isinstance(vals, list) else [vals]
+            out[f"{subj}__{Path(fname).stem}.csv"] = [int(v) for v in vals]
     return out
 
 
@@ -84,9 +85,9 @@ def main():
             ax1.scatter(df.loc[spikes_idx, "step"], df.loc[spikes_idx, "mwl"], marker="o", s=18, label="Spike")
 
         # Toggle step (if provided)
-        tstep = gt_steps.get(name)
-        if tstep is not None:
-            ax1.axvline(tstep, linestyle="--", label=f"toggle={tstep}")
+        tsteps = gt_steps.get(name, [])
+        for k, t in enumerate(tsteps):
+            ax1.axvline(t, linestyle="--", label=("toggle" if k == 0 else f"toggle{1+k}") + f"={t}")
 
         # Growth % on a twin axis (helps debug thresholding)
         if "growth_pct" in df.columns:
