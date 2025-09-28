@@ -109,10 +109,12 @@ def main():
             recent_count=recent_count,
             prior_count=prior_count,
             threshold_pct=threshold_pct,
-            min_separation=int(detcfg.get("min_separation", 0)),
+            min_delta=float(detcfg.get("min_delta", 0.08)),
+            min_separation=int(detcfg.get("min_separation", 90)),
             edge_only=bool(detcfg.get("edge_only", True)),
             direction=str(detcfg.get("direction", "up")),
-            eps=float(detcfg.get("eps", 1e-9)),
+            eps=float(detcfg.get("eps", 1e-6)),
+            min_mwl=float(detcfg.get("min_mwl", 0.08)),
         )
         rows = []
         step = 0

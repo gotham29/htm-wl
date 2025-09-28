@@ -39,19 +39,20 @@ model:
     permanenceConnected: 0.5
     predictedSegmentDecrement: 0.001
   seed: 0
-  anomaly_ema_alpha: 0.08
+  anomaly_ema_alpha: 0.18
 
 detection:
   windows:
     units: steps
-    recent: 25
-    prior: 75
-  threshold_pct: 180.0
-  min_separation: 60
+    recent: 12              # shorter recent = responsiveness
+    prior: 150              # longer prior = stable baseline
+  threshold_pct: 70
+  min_delta: 0.08
+  min_mwl: 0.08
+  min_separation: 90
   edge_only: true
-  mp_floor: 0.02
-  direction: both  # or: up / down
-  eps: 1e-9       # denom guard for near-zero mp
+  direction: up
+  eps: 1e-6
 
 evaluation:
   ground_truth:
