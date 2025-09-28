@@ -40,3 +40,7 @@ poetry.lock
 # Logs/DB
 *.log, *.sqlite*
 
+# Demo artifacts
+data_demo/
+results_demo/
+

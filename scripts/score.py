@@ -1,5 +1,10 @@
-#!/usr/bin/env python
-import argparse, csv, glob, os
+import warnings
+warnings.filterwarnings(
+    "ignore",
+    message="pkg_resources is deprecated as an API.*",
+    category=UserWarning,
+)
+import argparse, csv, glob
 from pathlib import Path
 from typing import Dict, List, Optional
 import pandas as pd
@@ -100,7 +105,17 @@ def main():
     out_root.mkdir(parents=True, exist_ok=True)
 
     for p in test_files:
-        det = SpikeDetector(recent_count, prior_count, threshold_pct)
+        det = SpikeDetector(
+            recent_count=recent_count,
+            prior_count=prior_count,
+            threshold_pct=threshold_pct,
+            min_delta=float(detcfg.get("min_delta", 0.08)),
+            min_separation=int(detcfg.get("min_separation", 90)),
+            edge_only=bool(detcfg.get("edge_only", True)),
+            direction=str(detcfg.get("direction", "up")),
+            eps=float(detcfg.get("eps", 1e-6)),
+            min_mwl=float(detcfg.get("min_mwl", 0.08)),
+        )
         rows = []
         step = 0
         for ts, feats_row in _iter_rows_mapped(p, feat_map, ts_col):
