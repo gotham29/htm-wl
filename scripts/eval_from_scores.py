@@ -1,4 +1,9 @@
-#!/usr/bin/env python
+import warnings
+warnings.filterwarnings(
+    "ignore",
+    message="pkg_resources is deprecated as an API.*",
+    category=UserWarning,
+)
 import argparse
 from pathlib import Path
 import pandas as pd

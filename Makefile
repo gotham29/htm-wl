@@ -61,7 +61,12 @@ demo-clean:
 clean:
 	@rm -rf results results_demo data_demo **/__pycache__ .pytest_cache .mypy_cache htm_wl.egg-info
 
+.PHONY: plot-demo
+
 plot-demo:
-	@$(PY) -m scripts.plot_scores --scores-dir results_demo/scores \
+	@echo ">> plotting demo scores..."
+	@$(PY) -m scripts.plot_scores \
+		--scores-dir results_demo/scores \
 		--gt data_demo/subjects_testfiles_wltogglepoints.yaml --gt-format subjects_yaml \
 		--data-root data_demo --outdir results_demo/plots --show-raw
+	@echo ">> plots -> results_demo/plots"

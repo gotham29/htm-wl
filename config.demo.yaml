@@ -50,6 +50,8 @@ detection:
   min_separation: 60
   edge_only: true
   mp_floor: 0.02
+  direction: both  # or: up / down
+  eps: 1e-9       # denom guard for near-zero mp
 
 evaluation:
   ground_truth:
