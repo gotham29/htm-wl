@@ -134,6 +134,40 @@ Outputs go to `results/scores/` as `Subject__file.csv` (prevents collisions).
 
 **Using timestamps instead of steps?** Put `toggle_ts` in your GT and pass `--ts-col-in-scores <your_ts_col>`; the evaluator maps to the first step with `ts ≥ toggle_ts`.
 
+### 3.4 Live visualization (train/test)
+
+Run interactive, step-by-step plots to illustrate how HTM-WL learns on training data and reacts to test streams.
+
+**Train-only animation** (no spikes/growth% in the bottom panel):
+    
+    python -m scripts.live_demo --mode train \
+      --config config.yaml \
+      --train-file path/to/your/train.csv \
+      --rate-hz 10.0
+
+**Test stream** (warms on `dataset.train` or `--train-file`, then streams the test CSV):
+    
+    python -m scripts.live_demo --mode test \
+      --config config.yaml \
+      --file path/to/your/test.csv \
+      --rate-hz 10.0 --speed 2.0
+
+**What you’ll see**
+- **Top subplot**: each configured feature from `dataset.features` as a **rolling z-score** (helps relate input changes to MWL spikes).
+- **Bottom subplot** (fixed y-axis **0–1**):
+  - **MWL** in **blue**
+  - **growth%** in **orange** (test mode only)
+  - **spikes** as **red** dots (test mode only)
+
+**Tips**
+- To warm on a single training file in test mode, add `--train-file path/to/train.csv`.
+- Adjust detector behavior in your config via `detection.*` (e.g., `windows.recent/prior`, `threshold_pct`, `edge_only`, `min_separation`, `min_delta`, `eps`).
+- CLI switches:
+  - `--rate-hz <Hz>`: playback rate; `--speed <multiplier>`: speed up/slow down display
+  - `--window <N>`: number of points kept on screen
+  - `--no-show-raw`: hide the top inputs panel
+  - `--no-plot`: disable plotting (useful for dry runs)
+
 ---
 
 ## 4) How the detector works
