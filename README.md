@@ -136,37 +136,52 @@ Outputs go to `results/scores/` as `Subject__file.csv` (prevents collisions).
 
 ### 3.4 Live visualization (train/test)
 
-Run interactive, step-by-step plots to illustrate how HTM-WL learns on training data and reacts to test streams.
+Run interactive plots to show how HTM-WL learns on training data and reacts to test streams.
 
-**Train-only animation** (no spikes/growth% in the bottom panel):
-    
+**Train-only animation** (no growth%/spikes in the bottom panel):
+
     python -m scripts.live_demo --mode train \
       --config config.yaml \
       --train-file path/to/your/train.csv \
-      --rate-hz 10.0
+      --rate-hz 10.0 \
+      --show-raw
 
 **Test stream** (warms on `dataset.train` or `--train-file`, then streams the test CSV):
-    
+
     python -m scripts.live_demo --mode test \
       --config config.yaml \
       --file path/to/your/test.csv \
-      --rate-hz 10.0 --speed 2.0
+      --rate-hz 10.0 --speed 2.0 \
+      --show-raw
 
 **What you’ll see**
-- **Top subplot**: each configured feature from `dataset.features` as a **rolling z-score** (helps relate input changes to MWL spikes).
-- **Bottom subplot** (fixed y-axis **0–1**):
+- **Top subplot**: each configured feature from `dataset.features` as a rolling z-score (relate input changes to MWL spikes).
+- **Bottom subplot** *(fixed y-axis 0–1)*:
   - **MWL** in **blue**
-  - **growth%** in **orange** (test mode only)
-  - **spikes** as **red** dots (test mode only)
+  - **growth%** in **orange** *(test mode only)*
+  - **spikes** as **red** dots *(test mode only)*
 
 **Tips**
 - To warm on a single training file in test mode, add `--train-file path/to/train.csv`.
-- Adjust detector behavior in your config via `detection.*` (e.g., `windows.recent/prior`, `threshold_pct`, `edge_only`, `min_separation`, `min_delta`, `eps`).
+- Tune detector behavior via `detection.*` (e.g., `windows.recent/prior`, `threshold_pct`, `edge_only`, `min_separation`, `min_delta`, `eps`).
 - CLI switches:
-  - `--rate-hz <Hz>`: playback rate; `--speed <multiplier>`: speed up/slow down display
-  - `--window <N>`: number of points kept on screen
-  - `--no-show-raw`: hide the top inputs panel
-  - `--no-plot`: disable plotting (useful for dry runs)
+  - `--rate-hz <Hz>` playback rate; `--speed <multiplier>` speed up/slow down display
+  - `--window <N>` points kept on screen
+  - `--show-raw` to include the top inputs panel
+
+**Demo dataset quickstart** (after `make demo`):
+
+    # Train animation on demo data
+    python -m scripts.live_demo --mode train \
+      --config config.demo.yaml \
+      --train-file data_demo/DemoA/train.csv \
+      --rate-hz 6.67 --show-raw
+
+    # Test animation on a demo stream
+    python -m scripts.live_demo --mode test \
+      --config config.demo.yaml \
+      --file data_demo/DemoA/test_01.csv \
+      --rate-hz 6.67 --speed 2.0 --show-raw
 
 ---
 
