@@ -44,12 +44,12 @@ model:
 detection:
   windows:
     units: steps
-    recent: 12              # shorter recent = responsiveness
-    prior: 150              # longer prior = stable baseline
+    recent: 12
+    prior: 150
   threshold_pct: 70
-  min_delta: 0.08
-  min_mwl: 0.08
-  min_separation: 90
+  min_delta: 0.10
+  min_mwl: 0.10
+  min_separation: 60
   edge_only: true
   direction: up
   eps: 1e-6
