@@ -1,5 +1,10 @@
+pytest
 numpy>=1.26
 pandas>=2.0
+plotly>=5.18
 PyYAML>=6.0
-matplotlib>=3.8
-pytest
+matplotlib>=3.7
+streamlit>=1.35
+fastapi>=0.110
+uvicorn[standard]>=0.24
+python-multipart>=0.0.9

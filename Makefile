@@ -70,3 +70,9 @@ plot-demo:
 		--gt data_demo/subjects_testfiles_wltogglepoints.yaml --gt-format subjects_yaml \
 		--data-root data_demo --outdir results_demo/plots --show-raw
 	@echo ">> plots -> results_demo/plots"
+
+app:
+	@streamlit run app/app.py
+
+api:
+	@uvicorn api.main:app --reload --port 8000
