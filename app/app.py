@@ -309,7 +309,6 @@ with tab_test:
         test_placeholder_bot = st.empty()
         msg_placeholder = st.empty()
 
-    if start_test:
         sess: HTMSession = st.session_state.sess
         detector = build_detector(cfg, rate_hz)
 
