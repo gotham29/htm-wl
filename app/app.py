@@ -218,63 +218,83 @@ with tab_train:
         sess = build_session(cfg)
         st.session_state.sess = sess
 
-        # Live Plotly figure: 2 rows (MWL top, inputs bottom)
+        # figure with two rows (MWL on top, inputs on bottom)
         fig_train = make_subplots(
             rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.08,
             row_heights=[0.45, 0.55]
         )
-        # MWL trace (row 1)
+
+        # MWL (row 1) — init with empty arrays so .y is not None
         fig_train.add_trace(
-            go.Scatter(name="MWL", mode="lines", line=dict(color="#3366ff", width=2)),
+            go.Scatter(
+                name="MWL", mode="lines",
+                line=dict(color="#3366ff", width=2),
+                x=[], y=[]
+            ),
             row=1, col=1
         )
         fig_train.update_yaxes(title_text="MWL (0–1)", range=[0, 1], row=1, col=1)
         fig_train.update_xaxes(title_text="step", row=2, col=1)
-        # Input traces (row 2)
+
+        # Inputs (row 2)
         input_trace_idx = {}
         input_colors = ["#1f77b4", "#2ca02c", "#9467bd", "#8c564b", "#17becf"]
         for i, name in enumerate(features):
             fig_train.add_trace(
-                go.Scatter(name=name, mode="lines",
-                           line=dict(color=input_colors[i % len(input_colors)], width=1),
-                           opacity=0.9),
+                go.Scatter(
+                    name=name, mode="lines",
+                    line=dict(color=input_colors[i % len(input_colors)], width=1),
+                    opacity=0.9,
+                    x=[], y=[]
+                ),
                 row=2, col=1
             )
-            input_trace_idx[name] = 1 + i  # index in fig.data (0 is MWL)
+            input_trace_idx[name] = len(fig_train.data) - 1
+
         plot_train = train_placeholder.plotly_chart(fig_train, use_container_width=True)
 
+        # series we’ll extend every step
+        steps: list[int] = []
+        mwl_series: list[float] = []
+        z_win  = {name: deque(maxlen=400) for name in features}
+        z_hist = {name: [] for name in features}
 
-        # Rolling z-score buffers
-        z_win = {name: deque(maxlen=400) for name in features}
-        z_series = {name: [] for name in features}
-        steps = []
+        # cadence
+        period = (1.0 / max(rate_hz, 1e-9)) / max(speed, 1e-9)
 
-        for step, (_, feats_row, raw_row) in enumerate(iter_rows_mapped(Path(train_file), feat_map, ts_col), start=1):
+        # training loop
+        for step, (_, feats_row, raw_row) in enumerate(
+            iter_rows_mapped(Path(train_file), feat_map, ts_col), start=1
+        ):
             out = sess.step(feats_row)
+
+            # MWL
             steps.append(step)
-
-            # Update MWL trace
+            mwl_series.append(out["mwl"])
             fig_train.data[0].x = steps
-            fig_train.data[0].y = [*fig_train.data[0].y, out["mwl"]] if len(fig_train.data[0].y) else [out["mwl"]]
+            fig_train.data[0].y = mwl_series
 
-            # Build/refresh inputs (z) table occasionally
+            # inputs (rolling z-score, but keep full history so it aligns)
             for name, col in feat_map.items():
                 v = float(raw_row.get(col, np.nan))
-                if np.isnan(v): v = float(feats_row[name])
+                if np.isnan(v):
+                    v = float(feats_row[name])
                 z_win[name].append(v)
                 m = float(np.mean(z_win[name])); s = float(np.std(z_win[name])) + 1e-9
-                z_series[name].append((v - m)/s)
+                z_hist[name].append((v - m) / s)
 
             if step % 10 == 0:
-                # Update all input traces with full history (no 200-cap)
                 for name in features:
                     idx = input_trace_idx[name]
-                    fig_train.data[idx].x = steps[:len(z_series[name])]
-                    fig_train.data[idx].y = z_series[name]
+                    fig_train.data[idx].x = steps[:len(z_hist[name])]
+                    fig_train.data[idx].y = z_hist[name]
                 plot_train.plotly_chart(fig_train, use_container_width=True)
-            time.sleep(max(0.0, (1.0 / max(rate_hz, 1e-9)) / max(speed, 1e-9)))
+
+            time.sleep(max(0.0, period))
 
         st.success("Training pass complete. Switch to the Test tab to stream.")
+    else:
+        st.caption("Click the button above to build the model and start the training animation.")
 
 # --------- Test tab ----------
 with tab_test:
@@ -289,86 +309,117 @@ with tab_test:
         test_placeholder_bot = st.empty()
         msg_placeholder = st.empty()
 
-        if start_test:
-            sess: HTMSession = st.session_state.sess
-            detector = build_detector(cfg, rate_hz)
+    if start_test:
+        sess: HTMSession = st.session_state.sess
+        detector = build_detector(cfg, rate_hz)
 
-            # Prepare live charts
-            top_df = pd.DataFrame(columns=features)
-            top_chart = test_placeholder_top.line_chart(top_df)
+        # --- One fused figure: top=inputs, bottom=MWL/growth/spikes (shared x) ---
+        input_colors = ["#1f77b4", "#2ca02c", "#9467bd", "#8c564b", "#17becf"]
 
-            # Bottom (dual y-axes): MWL (left, 0–1) & growth% (right)
-            fig = make_subplots(specs=[[{"secondary_y": True}]])
+        fig = make_subplots(
+            rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.06,
+            row_heights=[0.35, 0.65],
+            specs=[[{}], [{"secondary_y": True}]],
+        )
+        input_trace_idx = {}
+        for i, name in enumerate(features):
             fig.add_trace(
-                go.Scatter(x=[], y=[], name="MWL", mode="lines",
-                           line=dict(color="#3366ff", width=2)),
-                secondary_y=False
+                go.Scatter(
+                    name=name, mode="lines",
+                    line=dict(color=input_colors[i % len(input_colors)], width=1),
+                    x=[], y=[], opacity=0.9,
+                ),
+                row=1, col=1,
             )
-            fig.add_trace(
-                go.Scatter(x=[], y=[], name="growth%", mode="lines",
-                           line=dict(color="#ff7f0e", width=1.5)),
-                secondary_y=True
-            )
-            fig.add_trace(
-                go.Scatter(x=[], y=[], mode="markers", name="Spike",
-                           marker=dict(color="#d62728", size=7, symbol="circle")),
-                secondary_y=False
-            )
-            fig.update_yaxes(title_text="MWL (0–1)", range=[0, 1], secondary_y=False)
-            fig.update_yaxes(title_text="growth %", secondary_y=True, rangemode="tozero")
-            fig.update_xaxes(title_text="step")
-            plot_slot = test_placeholder_bot.plotly_chart(fig, use_container_width=True, key="bot-plot")
-            xs, mwl_arr, growth_arr, sx, sy = [], [], [], [], []
+            input_trace_idx[name] = len(fig.data) - 1
 
-            # Storage for export
-            rows = []
-            spikes = []
-            step = 0
+        idx_mwl = len(fig.data)
+        fig.add_trace(
+            go.Scatter(name="MWL", mode="lines",
+                    line=dict(color="#3366ff", width=2), x=[], y=[]),
+            row=2, col=1, secondary_y=False,
+        )
+        idx_gpc = len(fig.data)
+        fig.add_trace(
+            go.Scatter(name="growth%", mode="lines",
+                    line=dict(color="#ff7f0e", width=1.5), x=[], y=[]),
+            row=2, col=1, secondary_y=True,
+        )
+        idx_spk = len(fig.data)
+        fig.add_trace(
+            go.Scatter(name="Spike", mode="markers",
+                    marker=dict(color="#d62728", size=7, symbol="circle"),
+                    x=[], y=[]),
+            row=2, col=1, secondary_y=False,
+        )
 
-            # Rolling z stats for inputs
-            z_win = {name: deque(maxlen=400) for name in features}
-            z_series = {name: [] for name in features}
+        # Axes & layout (shared x makes rows align perfectly)
+        fig.update_yaxes(title_text="MWL (0–1)", range=[0, 1], row=2, col=1, secondary_y=False)
+        fig.update_yaxes(title_text="growth %", row=2, col=1, secondary_y=True, rangemode="tozero")
+        fig.update_xaxes(showticklabels=False, row=1, col=1)      # hide top x ticks
+        fig.update_xaxes(title_text="step", row=2, col=1)
+        fig.update_layout(height=620, margin=dict(l=40, r=10, t=10, b=30), uirevision="stay")
 
-            for _, feats_row, raw_row in iter_rows_mapped(Path(test_file), feat_map, ts_col):
-                step += 1
-                out = sess.step(feats_row)
-                r = detector.update(out["mwl"])
+        # Single placeholder → no page reflow/flicker
+        plot_slot = st.plotly_chart(fig, use_container_width=True)
 
-                # update inputs (z)
-                z_row = {}
-                for name, col in feat_map.items():
-                    v = float(raw_row.get(col, np.nan))
-                    if np.isnan(v): v = float(feats_row[name])
-                    z_win[name].append(v)
-                    m = float(np.mean(z_win[name])); s = float(np.std(z_win[name])) + 1e-9
-                    z_val = (v - m)/s
-                    z_row[name] = z_val
-                    z_series[name].append(z_val)
-                top_chart.add_rows(pd.DataFrame([z_row]))
+        # --- Streaming state ------------------------------------------------------
+        rows, spikes = [], []
+        xs, mwl_arr, growth_arr, sx, sy = [], [], [], [], []
+        z_win  = {name: deque(maxlen=400) for name in features}
+        z_hist = {name: [] for name in features}
 
-                # bottom: update Plotly dual-axis figure
-                gpc = (r["growth_pct"] if r else None)
-                xs.append(step); mwl_arr.append(out["mwl"]); growth_arr.append(gpc)
-                fig.data[0].x = xs;        fig.data[0].y = mwl_arr          # MWL (left axis)
-                fig.data[1].x = xs;        fig.data[1].y = growth_arr       # growth% (right axis)
-                fig.data[2].x = sx;        fig.data[2].y = sy               # spikes (markers)
-                if step % 5 == 0:
-                    plot_slot.plotly_chart(fig, use_container_width=True)
+        win = int(window) if window and window > 0 else 2000
+        period = (1.0 / max(rate_hz, 1e-9)) / max(speed, 1e-9)
 
-                spike_flag = int(bool(r and r["spike"]))
-                if spike_flag:
-                    spikes.append(step)
-                    sx.append(step); sy.append(out["mwl"])
-                    msg_placeholder.success(f"SPIKE @ step {step} (mwl={out['mwl']:.3f}, growth%={(gpc or 0):.1f})")
-                rec = {"step": step, "anomaly": out["anomaly"], "mwl": out["mwl"], "growth_pct": gpc, "spike": spike_flag}
-                if ts_col: rec[ts_col] = raw_row.get(ts_col, None)
-                rows.append(rec)
+        for step, (_, feats_row, raw_row) in enumerate(iter_rows_mapped(Path(test_file), feat_map, ts_col), start=1):
+            out = sess.step(feats_row)
+            r = detector.update(out["mwl"])
+            gpc = (r["growth_pct"] if r else np.nan)
 
-                time.sleep(max(0.0, (1.0 / max(rate_hz, 1e-9)) / max(speed, 1e-9)))
+            # inputs (rolling z)
+            for name, col in feat_map.items():
+                v = float(raw_row.get(col, np.nan))
+                if np.isnan(v): v = float(feats_row[name])
+                z_win[name].append(v)
+                m = float(np.mean(z_win[name])); s = float(np.std(z_win[name])) + 1e-9
+                z_hist[name].append((v - m) / s)
 
-            st.session_state.last_scores = pd.DataFrame(rows)
-            st.session_state.last_spikes = spikes
-            st.success("Streaming complete. See Export / Metrics tab for downloads.")
+            xs.append(step); mwl_arr.append(out["mwl"]); growth_arr.append(gpc)
+
+            spike_flag = int(bool(r and r["spike"]))
+            if spike_flag:
+                spikes.append(step); sx.append(step); sy.append(out["mwl"])
+                msg_placeholder.success(f"SPIKE @ step {step} (mwl={out['mwl']:.3f}, growth%={(0 if np.isnan(gpc) else gpc):.1f})")
+
+            rec = {"step": step, "anomaly": out["anomaly"], "mwl": out["mwl"],
+                "growth_pct": (None if np.isnan(gpc) else gpc), "spike": spike_flag}
+            if ts_col: rec[ts_col] = raw_row.get(ts_col)
+            rows.append(rec)
+
+            # Update at a decimated rate to stay smooth
+            if step % 5 == 0:
+                xlo = max(1, step - win + 1); xhi = step
+                fig.update_xaxes(range=[xlo, xhi], row=2, col=1)  # shared_xaxes => applies to row 1 too
+
+                # Top: inputs
+                for name in features:
+                    idx = input_trace_idx[name]
+                    fig.data[idx].x = xs[:len(z_hist[name])]
+                    fig.data[idx].y = z_hist[name]
+
+                # Bottom: MWL/growth/spikes
+                fig.data[idx_mwl].x = xs; fig.data[idx_mwl].y = mwl_arr
+                fig.data[idx_gpc].x = xs; fig.data[idx_gpc].y = growth_arr
+                fig.data[idx_spk].x = sx; fig.data[idx_spk].y = sy
+
+                plot_slot.plotly_chart(fig, use_container_width=True)
+            time.sleep(max(0.0, period))
+
+        st.session_state.last_scores = pd.DataFrame(rows)
+        st.session_state.last_spikes = spikes
+        st.success("Streaming complete. See Export / Metrics tab for downloads.")
+
 
 # --------- Export / Metrics tab ----------
 with tab_export:
